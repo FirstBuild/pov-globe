@@ -7,27 +7,43 @@
 
 #include "RBD_Timer.h"
 
-volatile int rpmCount = 0;
+#define hallEffectSensorPin 6
+
+volatile int rotationCounter = 0;
+int rotationsPerSec = 0;
+int rotationsPerMin = 0;
 RBD::Timer printOutput;
 
 void rpmCounter() {
-  rpmCount++;
+  rotationCounter++;
 }
 
 void setup() {
   Serial.begin(9600);
-  printOutput.setTimeout(3000);
+  printOutput.setTimeout(1000);
 
-  pinMode(6, INPUT_PULLUP);
-  attachInterrupt(6, rpmCounter, FALLING);
-
+  pinMode(hallEffectSensorPin, INPUT_PULLUP);
+  attachInterrupt(hallEffectSensorPin, rpmCounter, FALLING);
   printOutput.restart();
 }
 
 void loop() {
   if (printOutput.onExpired()) {
+    detachInterrupt(hallEffectSensorPin);
+    rotationsPerMin = rotationCounter * 60;
+    rotationsPerSec = rotationCounter;
+
+    // Rotations per minute
     Serial.print("RPM: ");
-    Serial.println(rpmCount);
+    Serial.println(rotationsPerMin);
+
+    // Rotations per second
+    Serial.print("RPS: ");
+    Serial.println(rotationsPerSec);
+
+    rotationCounter = 0;
+
     printOutput.restart();
+    attachInterrupt(hallEffectSensorPin, rpmCounter, FALLING);
   }
 }
