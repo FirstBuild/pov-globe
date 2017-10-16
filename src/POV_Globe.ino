@@ -6,6 +6,7 @@
  */
 
 #include "RBD_Timer.h"
+#include "FastLED.h"
 
 #define hallEffectSensorPin 6
 
