@@ -7,6 +7,7 @@
 
 #include "RBD_Timer.h"
 #include "FastLED.h"
+#include "bitArrayImages.h"
 FASTLED_USING_NAMESPACE;
 
 #define hallEffectSensorPin 6
