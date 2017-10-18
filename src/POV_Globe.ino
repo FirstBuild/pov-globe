@@ -6,15 +6,14 @@
  */
 
 #include "RBD_Timer.h"
-#include "FastLED.h"
+#include "dotstar.h"
 #include "bitArrayImages.h"
-FASTLED_USING_NAMESPACE;
 
 #define hallEffectSensorPin 6
 #define CLK 4
 #define DATA 2
 
-#define NUM_LEDS 130
+#define NUM_LEDS 260
 #define BRIGHTNESS 150
 #define FRAMES_PER_SECOND 60
 
@@ -24,7 +23,6 @@ FASTLED_USING_NAMESPACE;
 #define SPARKING 150
 #define COOLING  100
 
-
 volatile int rotationCounter = 0;
 volatile bool update = false;
 int rotationsPerSec = 0;
@@ -33,10 +31,14 @@ long timePerSlice = 0;
 
 RBD::Timer printOutput;
 RBD::Timer rapidUpdate;
-CRGB leds[NUM_LEDS];
+
+Adafruit_DotStar strip = Adafruit_DotStar(NUM_LEDS, DATA , CLK);
 
 SYSTEM_THREAD(ENABLED);
 SYSTEM_MODE(SEMI_AUTOMATIC);
+
+int      head  = 0, tail = -260; // Index of first 'on' and 'off' pixels
+uint32_t color = 0xFF0022;      // 'On' color (starts orange)
 
 void rpmCounter() {
   update=true;
@@ -45,13 +47,8 @@ void rpmCounter() {
 void setup() {
   printOutput.setTimeout(1000);
 
-  //  On the Photon, SPI is implemented via SOFTWARE not HARDWARE.
-  //FastLED.addLeds<APA102, DATA, CLK, EOrder::BGR, DATA_RATE_MHZ(14)>(leds, NUM_LEDS);
-
-  FastLED.addLeds<APA102, DATA, CLK>(leds, NUM_LEDS);
-  FastLED.setBrightness(BRIGHTNESS);
-  FastLED.clear();
-  FastLED.show();
+  strip.begin(); // Initialize pins for output
+  strip.show();  // Turn all LEDs off ASAP
 
   pinMode(hallEffectSensorPin, INPUT_PULLUP);
   attachInterrupt(hallEffectSensorPin, rpmCounter, FALLING);
@@ -60,35 +57,44 @@ void setup() {
 
 void loop() {
   //hallEffectHandler();
-  static unsigned long test = micros();
-  static int count = 0;
+  //static unsigned long test = micros();
+  //static int count = 0;
 
-  if (printOutput.onExpired()) {
-      timePerSlice = ((micros() - test) * 1000) / 360;
-      test = micros();
-      printOutput.setTimeout(timePerSlice);
-      printOutput.restart();
+  strip.setPixelColor(head, color); // 'On' pixel at head
+  strip.setPixelColor(tail, 0);     // 'Off' pixel at tail
+  strip.show();                     // Refresh strip
+  delay(20);                        // Pause 20 milliseconds (~50 FPS)
+
+  if(++head >= NUM_LEDS) {         // Increment head index.  Off end of strip?
+    head = 0;                       //  Yes, reset head index to start
+    if((color >>= 8) == 0)          //  Next color (R->G->B) ... past blue now?
+      color = 0x00A5FF;             //   Yes, reset to red
   }
-  showLights(count);
-  count++;
+  if(++tail >= NUM_LEDS) tail = 0; // Increment, reset tail index
 
-  if (update) {
-    update = false;
-    count = 0;
-  }
-
+  //if (printOutput.onExpired()) {
+  //    timePerSlice = ((micros() - test) * 1000) / 360;
+  //    test = micros();
+  //    printOutput.setTimeout(timePerSlice);
+  //    printOutput.restart();
+  //}
+  //showLights(count);
+  //count++;
+//
+  //if (update) {
+  //  update = false;
+  //  count = 0;
+  //}
 }
 
 
 void showLights(int index) {
+
   if (index == 0) {
     for (int i = 0; i < NUM_LEDS; i++) {
-      leds[i] = CRGB::Blue;
     }
   } else {
-    FastLED.clear();
   }
-  FastLED.show();
 }
 
 
@@ -98,8 +104,6 @@ void roundTest() {
     pattern(tracker);
     tracker++;
     if (tracker == NUM_LEDS) {
-      FastLED.clear();
-      FastLED.show();
       tracker = 0;
     }
     printOutput.restart();
@@ -107,8 +111,6 @@ void roundTest() {
 }
 
 void pattern(int test) {
-  leds[test] = CRGB::Red;
-  FastLED.show();
 }
 
 void hallEffectHandler() {
