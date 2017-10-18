@@ -1,0 +1,60 @@
+#include "RBD_Timer.h"
+
+#define LED_COUNT  (260)
+uint32_t AP102[LED_COUNT + (LED_COUNT/16 + 1) + (1)];  // LEDs + (at least 1 leadout clock bit per 2 LEDs) + (extra byte as lead in for next round)
+uint8_t  brightness = 10;
+volatile bool dmaReady = true;
+
+SYSTEM_THREAD(ENABLED);
+SYSTEM_MODE(SEMI_AUTOMATIC);
+
+RBD::Timer printOutput;
+
+void cbDMA() {
+  dmaReady = true;
+}
+
+void setup() {
+  Serial.begin(9600);
+  printOutput.setTimeout(10);
+  SPI1.begin();
+  SPI1.setClockSpeed(24, MHZ);
+  SPI1.setBitOrder(MSBFIRST);
+  clear();
+  ledUpdate();
+}
+
+void loop() {
+ if (printOutput.onExpired()) {
+   static unsigned int tracker = 0;
+   pattern(tracker);
+   tracker++;
+   if (tracker == 260) {
+    Serial.println("clear");
+     clear();
+     tracker = 0;
+   }
+   printOutput.restart();
+ }
+
+  ledUpdate();
+}
+
+void pattern(int test) {
+    int b = 0;
+    int g = 0;
+    int r = 255;
+    AP102[test] = 0xE0 | r << 24 | g << 16 | b << 8 | brightness;
+}
+
+void ledUpdate() {
+  if (dmaReady) {
+    dmaReady = false;
+    SPI1.transfer(AP102, NULL, sizeof(AP102), cbDMA); // use NULL for callback for sync operation
+  }
+}
+
+
+void clear() {
+  memset((void *)AP102, 0, sizeof(AP102)); // to clear all pixels fast
+}
