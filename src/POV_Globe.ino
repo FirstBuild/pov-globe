@@ -15,6 +15,14 @@ FASTLED_USING_NAMESPACE;
 
 #define NUM_LEDS 130
 #define BRIGHTNESS 150
+#define FRAMES_PER_SECOND 60
+
+// SPARKING: What chance (out of 255) is there that a new spark will be lit?
+// Higher chance = more roaring fire.  Lower chance = more flickery fire.
+// Default 120, suggested range 50-200.
+#define SPARKING 150
+#define COOLING  100
+
 
 volatile int rotationCounter = 0;
 volatile bool update = false;
