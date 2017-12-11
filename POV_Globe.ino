@@ -37,14 +37,16 @@ unsigned long timePerColumn = timeLengthOfRotation / 360;
 volatile bool update = false;
 int cur_col = 0;
 int pos = 0;
+int imageOffset = 0;
+int sideOffset = 0;
 
 void setup() {
-  FastLED.addLeds<APA102,DATA,CLK, BGR,DATA_RATE_MHZ(24)>(leds,NUM_LEDS).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<APA102,DATA,CLK, BGR,DATA_RATE_MHZ(17)>(leds,NUM_LEDS).setCorrection(TypicalLEDStrip);
   FastLED.setBrightness( BRIGHTNESS );
   FastLED.clear();
   FastLED.show();
 
-  Serial.begin(38400);
+//  Serial.begin(38400);
 
   pinMode(hallEffectSensorPin, INPUT_PULLUP);
   attachInterrupt(hallEffectSensorPin, rpmCounter, FALLING);
@@ -81,7 +83,7 @@ void loop() {
       cli();
       update = false;
       sei();      
-      cur_col = 0;
+      cur_col = -25;
       //pos = 0;
     }
   //}
@@ -95,16 +97,50 @@ void modifyTime() {
 }
 
 void draw_column() {
-  if (cur_col < 146 && cur_col > 200) {
+  if (cur_col < (28 - imageOffset) && cur_col > (132 - imageOffset)) {
     FastLED.clear();
     FastLED.show();
     return;
   }
-  for (int i = 0; i < 18; i++) {
-    if (largeHelloText[i][cur_col]) {
-      leds[73 - i] = color;
+
+  for (int i = 0; i < 20; i++) {
+    if (cur_col > (44 - imageOffset) && cur_col < (116 - imageOffset)) {
+
+      // Herores array has 73 columns
+        int heroCount = cur_col - 43;
+//        heroCount %= 73;
+      if (heroesText[i][heroCount]) {
+        leds[(96 + sideOffset) - i] = color;
+      } else {
+        leds[(96 + sideOffset) - i] = CRGB::Black;
+      }
     } else {
-      leds[73 - i] = CRGB::Black;
+       leds[(96 + sideOffset) - i] = CRGB::Black;
+    }
+    
+    if (cur_col > (69 - imageOffset) && cur_col < (91 - imageOffset)) {
+      // Of array has 23 columns
+        int ofCount = cur_col - 69;
+        if (ofText[i][ofCount]) {
+          leds[(75 + sideOffset) - i] = color;
+        } else {
+          leds[(75 + sideOffset) - i] = CRGB::Black;
+        }
+    } else {
+       leds[(75 + sideOffset)  - i] = CRGB::Black;
+    }
+  
+    if (cur_col > (29 - imageOffset) && cur_col < (131 - imageOffset)) {
+      //  FirstBuild array has 103 columns
+        int fbCount = cur_col - 29;
+//        fbCount %= 103;
+        if (firstbuildText[i][fbCount]) {
+          leds[(52 + sideOffset)  - i] = color;
+        } else {
+          leds[(52 + sideOffset) - i] = CRGB::Black;
+        }
+    } else {
+       leds[(52 + sideOffset) - i] = CRGB::Black;
     }
   }
   FastLED.show();
